@@ -1,77 +1,161 @@
-# Project Report: Travel Planner(Video Link Implemented in Step 8)
+<div align="center">
 
-## Title: AI Travel Planner
+# ✈️ AI Travel Planner
 
-### Overview
-This project is an advanced conversational AI agent designed to act as a "team" of travel specialists. A user interacts with the system, providing trip details such as origin, destination, budget, dates, and the number of travellers. The system orchestrates a team of specialist agents—a **Travel Agent** (for flights) and a **Hotel Agent** (for accommodation)—to research live options in parallel.
+**A multi-agent AI system that researches flights and hotels in parallel and delivers a personalised travel itinerary — powered by LangGraph, Amadeus API, and Streamlit.**
 
-Using the **Amadeus API** for flights and hotels, the agents fetch real-time data including prices, ratings, and direct booking links. The system then consolidates these findings into a comprehensive, formatted itinerary that respects the user's budget and preferences. The entire application state is managed using **LangGraph**, featuring persistent memory to track the conversation and context.
+[![Python](https://img.shields.io/badge/Python-3.x-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-FF6B35?style=flat-square)](https://langchain-ai.github.io/langgraph/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Web%20UI-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![Amadeus](https://img.shields.io/badge/Amadeus-API-00A0E3?style=flat-square)](https://developers.amadeus.com)
+[![Status](https://img.shields.io/badge/Status-Completed-22c55e?style=flat-square)]()
 
-**Disclaimer:** Please note that the flight and hotel data provided by this agent are for demonstration purposes. Due to the nature of the free/test API tiers used (Amadeus Test Environment), pricing and availability are not guaranteed to be 100% accurate or real-time and may differ from final booking prices.
+[How It Works](#-how-it-works) · [Architecture](#-architecture) · [Features](#-features) · [Setup](#-setup) · [Demo](#-demo) · [Disclaimer](#-disclaimer)
 
-### Reason for picking up this project
-This project was selected to synthesise and demonstrate mastery of all the major advanced topics covered in the course:
+</div>
 
-#### LangGraph (State, Nodes, Graph)
-The core architecture is built as a stateful graph using `StateGraph`, managing complex state transitions and data flow between multiple nodes using a custom `TypedDict` state (`TravelAgentState`).
+---
 
-#### Tool Calling & RAG
-The agents use custom tools (`search_flight`, `search_hotel`) to perform retrieval-augmented generation by fetching live, structured data from external APIs (Amadeus) rather than relying on static knowledge.
+## 📖 Overview
 
-#### Persistent Memory (Module 2)
-The graph utilises a `SqliteSaver` checkpointer to provide persistent, long-term memory. This allows the agent to maintain context across multiple interactions and even resume sessions after interruptions.
+The AI Travel Planner is a conversational agent that acts as a coordinated team of travel specialists. Describe your trip — origin, destination, budget, dates, number of travellers — and the system dispatches a **Flight Agent** and a **Hotel Agent** simultaneously to research real options via the Amadeus API.
 
-#### Human-in-the-Loop (Module 3)
-The agent operates in a continuous conversational loop. It presents findings and then waits for the user's next message (state update). This allows the user to provide feedback (e.g., "Too expensive, find cheaper hotels"), effectively keeping the human in the loop to refine the search results.
+Both agents return live pricing, ratings, and booking links. A central orchestrator consolidates their findings into a clean, budget-aware itinerary — all through a chat interface built with Streamlit.
 
-#### Multi-Agent (Module 4)
-This is the core of the capstone. The project implements a multi-agent system:
-* **Sub-Graphs:** Specialised agents (Travel & Hotel) are built as their own independent, compiled sub-graphs.
-* **Parallelisation:** The main graph orchestrator executes these sub-graphs simultaneously to reduce latency.
-* **Map-Reduce:** The system "maps" the research task to the specialists and "reduces" their independent findings into a single, cohesive final plan.
+---
 
-#### Deployment (Module 1)
-The final agent is designed to be served as an API using `langgraph dev` and accessed via a simple web interface (Streamlit).
+## ✨ Features
 
-### Plan
-I plan to execute these steps to complete my project. As per the assignment instructions, I will commit after each step is complete.
+- **Parallel multi-agent research** — flight and hotel agents run simultaneously, cutting wait time
+- **Live data** — real prices, ratings, and Skyscanner booking links via the Amadeus API
+- **Persistent memory** — `SqliteSaver` checkpointer maintains context across messages and session restarts
+- **Conversational refinement** — say "too expensive" or "closer to the city centre" and the agent re-searches
+- **Map-Reduce orchestration** — tasks are mapped to specialist sub-graphs and reduced into one coherent plan
+- **Streamlit web UI** — clean chat interface served via `langgraph dev` + `langgraph_sdk`
 
-#### [DONE] [Step 1: Define State & Graph with Persistent Memory.](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/State_%26_Graph_With_PersistantMemory.ipynb)
-* Defined the `TravelAgentState` (`TypedDict`) to hold user inputs (`origin`, `destination`, `dates`, `budget`) and results lists.
-* Implemented custom reducers (`replace_value` and `operator.add`) to manage state updates from parallel branches safely.
-* Initialised `SqliteSaver` for persistent conversational memory.
-* **Note:** At this stage, the graph was tested using **mock data** to ensure state persistence worked before integrating real APIs.
+---
 
-#### [DONE] [Step 2: Implement Core Tools (Mock Data).](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Core_Tools.ipynb)
-* Created placeholder tools (`search_flight`, `search_hotel`) returning **hardcoded mock data**.
-* Real APIs were **not yet implemented**. This allowed me to verify the tool-calling logic and agent loop in isolation without hitting API limits or connectivity issues.
+## 🏗 Architecture
 
-#### [DONE] [Step 3: Create "Travel Agent" Sub-Graph (Mock Data).](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Travel_Sub_Graph.ipynb)
-* Built the dedicated `travel_agent` sub-graph specifically for handling flight queries.
-* Implemented a parser node to clean the tool outputs.
-* **Note:** This agent was initially built and tested using the **mock flight tools** to verify the sub-graph structure and data parsing logic.
+```
+User (Streamlit Chat)
+        │
+        ▼
+┌──────────────────────┐
+│   Main Orchestrator  │  LangGraph StateGraph
+│  Intake → Plan → Route│  TravelAgentState (TypedDict)
+└───────┬──────────────┘
+        │  Map — parallel dispatch
+   ┌────┴────┐
+   ▼         ▼
+┌──────┐  ┌───────┐
+│Flight│  │ Hotel │   Independent compiled sub-graphs
+│Agent │  │ Agent │   Each with tool-calling + parser node
+└──┬───┘  └───┬───┘
+   │           │
+   └─────┬─────┘
+         │  Reduce — aggregate results
+         ▼
+  Final Itinerary Response
+```
 
-#### [DONE] [Step 4: Create "Accommodation Agent" Sub-Graph (Mock Data).](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Accomadation_Sub_Graph.ipynb)
-* Built the dedicated `accommodation_agent` sub-graph for handling hotel queries.
-* **Note:** Similar to the travel agent, this was first implemented using **mock hotel tools** to ensure the parallel execution logic would work correctly without external dependencies.
+### Component Breakdown
 
-#### [DONE] Step 5: [Implement Map-Reduce Orchestrator (Mock Data).](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Map_Reduce.ipynb)
-* Built the **Main Graph** to coordinate the workflow, including Intake, Planning, and Routing.
-* Implemented the "Map-Reduce" logic to dispatch tasks to both sub-graphs in parallel and aggregate the results.
-* **Verified Logic:** Successfully tested the entire multi-agent flow using **hardcoded values** to ensure the parallel execution and state aggregation worked correctly before moving to production data.
+| Component | Role |
+|-----------|------|
+| `TravelAgentState` | Central `TypedDict` — holds user inputs and results from both agents |
+| **Travel Agent** sub-graph | Searches flights via Amadeus; generates Skyscanner deep links |
+| **Hotel Agent** sub-graph | Searches hotels via Amadeus; returns real-time pricing and ratings |
+| `SqliteSaver` | Persistent checkpointer — survives session restarts |
+| `search_flight` / `search_hotel` | Custom LangGraph tools calling live Amadeus endpoints |
+| Streamlit app | Chat UI connected to the graph API via `langgraph_sdk` |
 
-#### [DONE] [Step 6: Integrate Real APIs (Amadeus).](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/API_Implementations.ipynb)
-* **Upgraded Tools:** Replaced the mock/hardcoded tools from Steps 2-5 with live API integrations.
-* Integrated **Amadeus API** for flight search, including dynamic Skyscanner link generation.
-* Integrated **Amadeus API** for hotel search to get real-time pricing and details.
-* Validated that the agents now fetch and process real-world data instead of the initial mock data.
+---
 
-#### [DONE] [Step 7: Deploy & Build Web Interface.](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/TravelPlannerWebAPP.py)
-* Deploy the final compiled graph as an API using `langgraph dev`.
-* Create a simple **Streamlit** web app with a chat interface that connects to the agent's API using the `langgraph_sdk`.
+## 🧠 Concepts Demonstrated
 
-#### [DONE] [Step 8: Final Video Walkthrough.](https://drive.google.com/file/d/1lClsOZuoNLCQWE7WR8_b6LKFLl0VfP4F/view?usp=drive_link)
-* Record a comprehensive video walkthrough demonstrating the fully functional Travel Planner via the Streamlit web interface.
+| Concept | Implementation |
+|---------|---------------|
+| **LangGraph** | `StateGraph` with custom reducers (`replace_value`, `operator.add`) for safe parallel state updates |
+| **Tool Calling & RAG** | Agents retrieve live structured data from Amadeus rather than relying on static knowledge |
+| **Persistent Memory** | `SqliteSaver` checkpointer preserves conversation context across turns and restarts |
+| **Human-in-the-Loop** | Agent presents results then waits — users refine with natural follow-up messages |
+| **Multi-Agent / Sub-Graphs** | Flight and hotel agents are independently compiled sub-graphs run by a parent orchestrator |
+| **Map-Reduce** | Orchestrator maps research to both agents in parallel, then reduces findings into one plan |
+| **Deployment** | Graph served as an API with `langgraph dev`; consumed by a Streamlit frontend |
 
-### Conclusion
-I have planned to achieve a fully functional, multi-agent application that directly revises all modules from the course. This plan is ambitious but provides a clear path to demonstrating a practical understanding of LangGraph, from basic state management to complex, parallel multi-agent workflows with persistent memory and human oversight. Successful completion of this project will result in a portfolio-ready application that truly showcases the power of agentic AI development.
+---
+
+## 🚀 Setup
+
+### Prerequisites
+
+- Python 3.9+
+- [Amadeus API credentials](https://developers.amadeus.com) (free test tier)
+- OpenAI API key (or compatible LLM provider)
+
+### Install
+
+```bash
+git clone https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU.git
+cd AryanRastogi72-LLM-Capstone-Project-MAT496-SNU
+
+pip install -r requirements.txt
+```
+
+### Configure
+
+Create a `.env` file in the project root:
+
+```env
+OPENAI_API_KEY=your_openai_key
+AMADEUS_CLIENT_ID=your_amadeus_client_id
+AMADEUS_CLIENT_SECRET=your_amadeus_client_secret
+```
+
+### Run
+
+```bash
+# Start the LangGraph API server
+langgraph dev
+
+# In a separate terminal, launch the Streamlit UI
+streamlit run TravelPlannerWebAPP.py
+```
+
+---
+
+## 📓 Build Log
+
+The project was built incrementally — each step verified in isolation before adding the next layer of complexity.
+
+| Step | Notebook | What was built |
+|:----:|----------|----------------|
+| 1 | [State & Graph + Persistent Memory](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/State_%26_Graph_With_PersistantMemory.ipynb) | `TravelAgentState`, custom reducers, `SqliteSaver` — verified with mock data |
+| 2 | [Core Tools](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Core_Tools.ipynb) | `search_flight` and `search_hotel` tools with hardcoded responses |
+| 3 | [Travel Agent Sub-Graph](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Travel_Sub_Graph.ipynb) | Flight-specialist sub-graph with output parser node |
+| 4 | [Hotel Agent Sub-Graph](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Accomadation_Sub_Graph.ipynb) | Accommodation sub-graph; parallel execution verified |
+| 5 | [Map-Reduce Orchestrator](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/Map_Reduce.ipynb) | Main graph wiring parallel dispatch and result aggregation |
+| 6 | [Amadeus API Integration](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/API_Implementations.ipynb) | Replaced all mock tools with live Amadeus endpoints |
+| 7 | [Web App](https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU/blob/main/TravelPlannerWebAPP.py) | Streamlit chat UI deployed against the `langgraph dev` API |
+| 8 | [Video Demo](https://drive.google.com/file/d/1lClsOZuoNLCQWE7WR8_b6LKFLl0VfP4F/view?usp=drive_link) | Full walkthrough of the live application |
+
+---
+
+## 🎬 Demo
+
+▶️ [**Watch the full video walkthrough**](https://drive.google.com/file/d/1lClsOZuoNLCQWE7WR8_b6LKFLl0VfP4F/view?usp=drive_link)
+
+---
+
+## ⚠️ Disclaimer
+
+Flight and hotel data is sourced from the **Amadeus Test Environment**. Prices, availability, and booking details are for demonstration purposes only and may not reflect real-time market rates. Always verify with official booking platforms before making travel decisions.
+
+---
+
+<div align="center">
+
+Built by [Aryan Rastogi](https://github.com/AryanRastogi72) · MAT496 LLM Capstone · SNU Monsoon 2025
+
+</div>
