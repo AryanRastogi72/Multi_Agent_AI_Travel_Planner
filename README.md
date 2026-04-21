@@ -97,8 +97,8 @@ User (Streamlit Chat)
 ### Install
 
 ```bash
-git clone https://github.com/MAT496-Monsoon2025-SNU/AryanRastogi72-LLM-Capstone-Project-MAT496-SNU.git
-cd AryanRastogi72-LLM-Capstone-Project-MAT496-SNU
+git clone https://github.com/AryanRastogi72/Multi_Agent_AI_Travel_Planner.git
+cd AryanRastogi72-Multi_Agent_AI_Travel_Planner
 
 pip install -r requirements.txt
 ```
